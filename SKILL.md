@@ -101,9 +101,12 @@ Read the research output carefully. Pay attention to:
 **ANTI-PATTERN TO AVOID**: If user asks about "clawdbot skills" and research returns ClawdBot content (self-hosted AI agent), do NOT synthesize this as "Claude Code skills" just because both involve "skills". Read what the research actually says.
 
 Identify from the ACTUAL RESEARCH OUTPUT:
+- **PROMPT FORMAT** - Does research recommend JSON, structured params, natural language, keywords? THIS IS CRITICAL.
 - The top 3-5 patterns/techniques that appeared across multiple sources
 - Specific keywords, structures, or approaches mentioned BY THE SOURCES
 - Common pitfalls mentioned BY THE SOURCES
+
+**If research says "use JSON prompts" or "structured prompts", you MUST deliver prompts in that format later.**
 
 ---
 
@@ -119,6 +122,8 @@ What I learned:
 
 ---
 TARGET TOOL: {tool from research or user input}
+
+PROMPT FORMAT: [JSON / structured / natural language / keywords - whatever research recommends]
 
 KEY PATTERNS I'll use:
 1. [Pattern from research]
@@ -170,14 +175,25 @@ When they respond with their vision (e.g., "I want a landing page mockup for my 
 
 Based on what they want to create, write a **single, highly-tailored prompt** using your research expertise.
 
-### Format:
+### CRITICAL: Match the FORMAT the research recommends
+
+**If research says to use a specific prompt FORMAT, YOU MUST USE THAT FORMAT:**
+
+- Research says "JSON prompts" → Write the prompt AS JSON
+- Research says "structured parameters" → Use structured key: value format
+- Research says "natural language" → Use conversational prose
+- Research says "keyword lists" → Use comma-separated keywords
+
+**ANTI-PATTERN**: Research says "use JSON prompts with device specs" but you write plain prose. This defeats the entire purpose of the research.
+
+### Output Format:
 
 ```
 Here's your prompt for {TARGET_TOOL}:
 
 ---
 
-[The actual prompt - ready to copy-paste, incorporating specific patterns/keywords from your research that match their use case]
+[The actual prompt IN THE FORMAT THE RESEARCH RECOMMENDS - if research said JSON, this is JSON. If research said natural language, this is prose. Match what works.]
 
 ---
 
@@ -185,6 +201,7 @@ This uses [brief 1-line explanation of what research insight you applied].
 ```
 
 ### Quality Checklist:
+- [ ] **FORMAT MATCHES RESEARCH** - If research said JSON/structured/etc, prompt IS that format
 - [ ] Directly addresses what the user said they want to create
 - [ ] Uses specific patterns/keywords discovered in research
 - [ ] Ready to paste with zero edits (or minimal [PLACEHOLDERS] clearly marked)
