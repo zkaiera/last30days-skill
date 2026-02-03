@@ -127,6 +127,45 @@ PROMO_SINGLE_KEY_PLAIN = {
     "x": "\n💡 Tip: Add XAI_API_KEY to ~/.config/last30days/.env for X/Twitter data with real likes & reposts!\n",
 }
 
+# Bird CLI prompts
+BIRD_INSTALL_PROMPT = f"""
+{Colors.CYAN}{Colors.BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.RESET}
+{Colors.CYAN}🐦 FREE X/TWITTER SEARCH AVAILABLE{Colors.RESET}
+
+Bird CLI provides free X search using your browser session (no API key needed).
+
+"""
+
+BIRD_INSTALL_PROMPT_PLAIN = """
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🐦 FREE X/TWITTER SEARCH AVAILABLE
+
+Bird CLI provides free X search using your browser session (no API key needed).
+
+"""
+
+BIRD_AUTH_HELP = f"""
+{Colors.YELLOW}Bird authentication failed.{Colors.RESET}
+
+To fix this:
+1. Log into X (twitter.com) in Safari, Chrome, or Firefox
+2. Run: {Colors.BOLD}bird check{Colors.RESET} to verify credentials
+3. Try again
+
+For manual setup, see: https://github.com/steipete/bird#authentication
+"""
+
+BIRD_AUTH_HELP_PLAIN = """
+Bird authentication failed.
+
+To fix this:
+1. Log into X (twitter.com) in Safari, Chrome, or Firefox
+2. Run: bird check to verify credentials
+3. Try again
+
+For manual setup, see: https://github.com/steipete/bird#authentication
+"""
+
 # Spinner frames
 SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 DOTS_FRAMES = ['   ', '.  ', '.. ', '...']
@@ -307,6 +346,44 @@ class ProgressDisplay:
                 sys.stderr.write(PROMO_SINGLE_KEY[missing])
             else:
                 sys.stderr.write(PROMO_SINGLE_KEY_PLAIN[missing])
+        sys.stderr.flush()
+
+    def prompt_bird_install(self) -> bool:
+        """Prompt user to install Bird CLI.
+
+        Returns:
+            True if user wants to install, False otherwise.
+        """
+        if IS_TTY:
+            sys.stderr.write(BIRD_INSTALL_PROMPT)
+        else:
+            sys.stderr.write(BIRD_INSTALL_PROMPT_PLAIN)
+        sys.stderr.flush()
+
+        try:
+            response = input("Install Bird CLI now? (y/n): ").strip().lower()
+            return response in ('y', 'yes')
+        except (EOFError, KeyboardInterrupt):
+            return False
+
+    def show_bird_install_success(self, username: str):
+        """Show Bird installation success message."""
+        msg = f"{Colors.GREEN}✓ Bird installed and authenticated as @{username}{Colors.RESET}\n" if IS_TTY else f"✓ Bird installed and authenticated as @{username}\n"
+        sys.stderr.write(msg)
+        sys.stderr.flush()
+
+    def show_bird_install_failed(self, error: str):
+        """Show Bird installation failure message."""
+        msg = f"{Colors.RED}✗ Bird installation failed: {error}{Colors.RESET}\n" if IS_TTY else f"✗ Bird installation failed: {error}\n"
+        sys.stderr.write(msg)
+        sys.stderr.flush()
+
+    def show_bird_auth_help(self):
+        """Show Bird authentication help."""
+        if IS_TTY:
+            sys.stderr.write(BIRD_AUTH_HELP)
+        else:
+            sys.stderr.write(BIRD_AUTH_HELP_PLAIN)
         sys.stderr.flush()
 
 
