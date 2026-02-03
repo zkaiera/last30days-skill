@@ -1,6 +1,6 @@
 ---
-name: last30days
-description: Research a topic from the last 30 days on Reddit + X + Web, become an expert, and write copy-paste-ready prompts for the user's target tool.
+name: last30daystest
+description: TEST VERSION - Research a topic from the last 30 days on Reddit + X + Web with Bird CLI support.
 argument-hint: "[topic] for [tool]" or "[topic]"
 context: fork
 agent: Explore
@@ -8,7 +8,14 @@ disable-model-invocation: true
 allowed-tools: Bash, Read, Write, AskUserQuestion, WebSearch
 ---
 
-# last30days: Research Any Topic from the Last 30 Days
+# last30daystest: TEST VERSION with Bird CLI Support
+
+This is the TEST version of /last30days with Bird CLI integration for free X/Twitter search.
+
+**What's new:**
+- Bird CLI support for free X/Twitter search (no API key needed)
+- Uses browser cookies for authentication
+- Falls back to xAI if Bird not available
 
 Research ANY topic across Reddit, X, and the web. Surface what people are actually discussing, recommending, and debating right now.
 
@@ -50,60 +57,71 @@ Common patterns:
 
 ## Setup Check
 
-The skill works in three modes based on available API keys:
+The skill works in multiple modes based on available sources:
 
-1. **Full Mode** (both keys): Reddit + X + WebSearch - best results with engagement metrics
-2. **Partial Mode** (one key): Reddit-only or X-only + WebSearch
-3. **Web-Only Mode** (no keys): WebSearch only - still useful, but no engagement metrics
+1. **Bird Mode** (free): X via Bird CLI + Reddit via OpenAI + WebSearch
+2. **Full Mode** (both API keys): Reddit + X via xAI + WebSearch
+3. **Partial Mode** (one key): Reddit-only or X-only + WebSearch
+4. **Web-Only Mode** (no keys): WebSearch only
 
-**API keys are OPTIONAL.** The skill will work without them using WebSearch fallback.
+**Bird CLI is the preferred X source** - free, uses your browser session.
 
-### First-Time Setup (Optional but Recommended)
+### First-Time Setup
 
-If the user wants to add API keys for better results:
+**Option 1: Install Bird CLI (Recommended - Free X search)**
 
+The script will prompt to install Bird if not found. Or install manually:
+```bash
+npm install -g @steipete/bird
+```
+
+Then log into X (twitter.com) in your browser. Bird uses your browser session.
+
+**Option 2: API Keys (Optional)**
+
+If you want API-based access:
 ```bash
 mkdir -p ~/.config/last30days
 cat > ~/.config/last30days/.env << 'ENVEOF'
 # last30days API Configuration
-# Both keys are optional - skill works with WebSearch fallback
+# All keys are optional - Bird CLI or WebSearch fallback available
 
 # For Reddit research (uses OpenAI's web_search tool)
 OPENAI_API_KEY=
 
-# For X/Twitter research (uses xAI's x_search tool)
+# For X/Twitter research (uses xAI's x_search tool - fallback if no Bird)
 XAI_API_KEY=
 ENVEOF
 
 chmod 600 ~/.config/last30days/.env
-echo "Config created at ~/.config/last30days/.env"
-echo "Edit to add your API keys for enhanced research."
 ```
 
-**DO NOT stop if no keys are configured.** Proceed with web-only mode.
+**DO NOT stop if no keys are configured.** Proceed with available sources.
 
 ---
 
 ## Research Execution
 
-**IMPORTANT: The script handles API key detection automatically.** Run it and check the output to determine mode.
+**IMPORTANT: The script handles source detection automatically.** Run it and check the output.
 
 **Step 1: Run the research script**
 ```bash
-python3 ~/.claude/skills/last30days/scripts/last30days.py "$ARGUMENTS" --emit=compact 2>&1
+python3 ~/.claude/skills/last30daystest/scripts/last30days.py "$ARGUMENTS" --emit=compact 2>&1
 ```
 
 The script will automatically:
-- Detect available API keys
-- Show a promo banner if keys are missing (this is intentional marketing)
-- Run Reddit/X searches if keys exist
+- Check for Bird CLI (free X search)
+- Offer to install Bird if not found and npm available
+- Detect API keys
+- Run Reddit/X searches with best available source
 - Signal if WebSearch is needed
 
 **Step 2: Check the output mode**
 
 The script output will indicate the mode:
-- **"Mode: both"** or **"Mode: reddit-only"** or **"Mode: x-only"**: Script found results, WebSearch is supplementary
-- **"Mode: web-only"**: No API keys, Claude must do ALL research via WebSearch
+- **"Mode: both"** - Has both Reddit and X sources
+- **"Mode: reddit-only"** or **"Mode: x-only"** - Has one source
+- **"Mode: web-only"** - No API keys or Bird, Claude must do ALL research via WebSearch
 
 **Step 3: Do WebSearch**
 
@@ -134,15 +152,9 @@ Choose search queries based on QUERY_TYPE:
 
 For ALL query types:
 - **USE THE USER'S EXACT TERMINOLOGY** - don't substitute or add tech names based on your knowledge
-  - If user says "ChatGPT image prompting", search for "ChatGPT image prompting"
-  - Do NOT add "DALL-E", "GPT-4o", or other terms you think are related
-  - Your knowledge may be outdated - trust the user's terminology
 - EXCLUDE reddit.com, x.com, twitter.com (covered by script)
 - INCLUDE: blogs, tutorials, docs, news, GitHub repos
 - **DO NOT output "Sources:" list** - this is noise, we'll show stats at the end
-
-**Step 3: Wait for background script to complete**
-Use TaskOutput to get the script results before proceeding to synthesis.
 
 **Depth options** (passed through from user's command):
 - `--quick` → Faster, fewer sources (8-12 each)
@@ -171,11 +183,9 @@ The Judge Agent must:
 **CRITICAL: Ground your synthesis in the ACTUAL research content, not your pre-existing knowledge.**
 
 Read the research output carefully. Pay attention to:
-- **Exact product/tool names** mentioned (e.g., if research mentions "ClawdBot" or "@clawdbot", that's a DIFFERENT product than "Claude Code" - don't conflate them)
+- **Exact product/tool names** mentioned
 - **Specific quotes and insights** from the sources - use THESE, not generic knowledge
 - **What the sources actually say**, not what you assume the topic is about
-
-**ANTI-PATTERN TO AVOID**: If user asks about "clawdbot skills" and research returns ClawdBot content (self-hosted AI agent), do NOT synthesize this as "Claude Code skills" just because both involve "skills". Read what the research actually says.
 
 ### If QUERY_TYPE = RECOMMENDATIONS
 
@@ -187,27 +197,17 @@ When user asks "best X" or "top X", they want a LIST of specific things:
 - Note which sources recommend each (Reddit thread, X post, blog)
 - List them by popularity/mention count
 
-**BAD synthesis for "best Claude Code skills":**
-> "Skills are powerful. Keep them under 500 lines. Use progressive disclosure."
-
-**GOOD synthesis for "best Claude Code skills":**
-> "Most mentioned skills: /commit (5 mentions), remotion skill (4x), git-worktree (3x), /pr (3x). The Remotion announcement got 16K likes on X."
-
 ### For all QUERY_TYPEs
 
 Identify from the ACTUAL RESEARCH OUTPUT:
-- **PROMPT FORMAT** - Does research recommend JSON, structured params, natural language, keywords? THIS IS CRITICAL.
+- **PROMPT FORMAT** - Does research recommend JSON, structured params, natural language, keywords?
 - The top 3-5 patterns/techniques that appeared across multiple sources
 - Specific keywords, structures, or approaches mentioned BY THE SOURCES
 - Common pitfalls mentioned BY THE SOURCES
 
-**If research says "use JSON prompts" or "structured prompts", you MUST deliver prompts in that format later.**
-
 ---
 
 ## THEN: Show Summary + Invite Vision
-
-**CRITICAL: Do NOT output any "Sources:" lists. The final display should be clean.**
 
 **Display in this EXACT sequence:**
 
@@ -215,12 +215,10 @@ Identify from the ACTUAL RESEARCH OUTPUT:
 
 **If RECOMMENDATIONS** - Show specific things mentioned:
 ```
-🏆 Most mentioned:
+Most mentioned:
 1. [Specific name] - mentioned {n}x (r/sub, @handle, blog.com)
 2. [Specific name] - mentioned {n}x (sources)
 3. [Specific name] - mentioned {n}x (sources)
-4. [Specific name] - mentioned {n}x (sources)
-5. [Specific name] - mentioned {n}x (sources)
 
 Notable mentions: [other specific things with 1-2 mentions]
 ```
@@ -239,26 +237,13 @@ KEY PATTERNS I'll use:
 
 **THEN - Stats (right before invitation):**
 
-For **full/partial mode** (has API keys):
 ```
 ---
-✅ All agents reported back!
-├─ 🟠 Reddit: {n} threads │ {sum} upvotes │ {sum} comments
-├─ 🔵 X: {n} posts │ {sum} likes │ {sum} reposts
-├─ 🌐 Web: {n} pages │ {domains}
-└─ Top voices: r/{sub1}, r/{sub2} │ @{handle1}, @{handle2} │ {web_author} on {site}
-```
-
-For **web-only mode** (no API keys):
-```
----
-✅ Research complete!
-├─ 🌐 Web: {n} pages │ {domains}
-└─ Top sources: {author1} on {site1}, {author2} on {site2}
-
-💡 Want engagement metrics? Add API keys to ~/.config/last30days/.env
-   - OPENAI_API_KEY → Reddit (real upvotes & comments)
-   - XAI_API_KEY → X/Twitter (real likes & reposts)
+All agents reported back!
+- Reddit: {n} threads | {sum} upvotes | {sum} comments
+- X: {n} posts | {sum} likes | {sum} reposts (via Bird/xAI)
+- Web: {n} pages | {domains}
+- Top voices: r/{sub1}, r/{sub2} | @{handle1}, @{handle2}
 ```
 
 **LAST - Invitation:**
@@ -267,30 +252,11 @@ For **web-only mode** (no API keys):
 Share your vision for what you want to create and I'll write a thoughtful prompt you can copy-paste directly into {TARGET_TOOL}.
 ```
 
-**Use real numbers from the research output.** The patterns should be actual insights from the research, not generic advice.
-
-**SELF-CHECK before displaying**: Re-read your "What I learned" section. Does it match what the research ACTUALLY says? If the research was about ClawdBot (a self-hosted AI agent), your summary should be about ClawdBot, not Claude Code. If you catch yourself projecting your own knowledge instead of the research, rewrite it.
-
-**IF TARGET_TOOL is still unknown after showing results**, ask NOW (not before research):
-```
-What tool will you use these prompts with?
-
-Options:
-1. [Most relevant tool based on research - e.g., if research mentioned Figma/Sketch, offer those]
-2. Nano Banana Pro (image generation)
-3. ChatGPT / Claude (text/code)
-4. Other (tell me)
-```
-
-**IMPORTANT**: After displaying this, WAIT for the user to respond. Don't dump generic prompts.
-
 ---
 
 ## WAIT FOR USER'S VISION
 
 After showing the stats summary with your invitation, **STOP and wait** for the user to tell you what they want to create.
-
-When they respond with their vision (e.g., "I want a landing page mockup for my SaaS app"), THEN write a single, thoughtful, tailored prompt.
 
 ---
 
@@ -300,14 +266,7 @@ Based on what they want to create, write a **single, highly-tailored prompt** us
 
 ### CRITICAL: Match the FORMAT the research recommends
 
-**If research says to use a specific prompt FORMAT, YOU MUST USE THAT FORMAT:**
-
-- Research says "JSON prompts" → Write the prompt AS JSON
-- Research says "structured parameters" → Use structured key: value format
-- Research says "natural language" → Use conversational prose
-- Research says "keyword lists" → Use comma-separated keywords
-
-**ANTI-PATTERN**: Research says "use JSON prompts with device specs" but you write plain prose. This defeats the entire purpose of the research.
+**If research says to use a specific prompt FORMAT, YOU MUST USE THAT FORMAT.**
 
 ### Output Format:
 
@@ -316,25 +275,12 @@ Here's your prompt for {TARGET_TOOL}:
 
 ---
 
-[The actual prompt IN THE FORMAT THE RESEARCH RECOMMENDS - if research said JSON, this is JSON. If research said natural language, this is prose. Match what works.]
+[The actual prompt IN THE FORMAT THE RESEARCH RECOMMENDS]
 
 ---
 
 This uses [brief 1-line explanation of what research insight you applied].
 ```
-
-### Quality Checklist:
-- [ ] **FORMAT MATCHES RESEARCH** - If research said JSON/structured/etc, prompt IS that format
-- [ ] Directly addresses what the user said they want to create
-- [ ] Uses specific patterns/keywords discovered in research
-- [ ] Ready to paste with zero edits (or minimal [PLACEHOLDERS] clearly marked)
-- [ ] Appropriate length and style for TARGET_TOOL
-
----
-
-## IF USER ASKS FOR MORE OPTIONS
-
-Only if they ask for alternatives or more prompts, provide 2-3 variations. Don't dump a prompt pack unless requested.
 
 ---
 
@@ -356,12 +302,6 @@ For the rest of this conversation, remember:
 
 **CRITICAL: After research is complete, you are now an EXPERT on this topic.**
 
-When the user asks follow-up questions:
-- **DO NOT run new WebSearches** - you already have the research
-- **Answer from what you learned** - cite the Reddit threads, X posts, and web sources
-- **If they ask for a prompt** - write one using your expertise
-- **If they ask a question** - answer it from your research findings
-
 Only do new research if the user explicitly asks about a DIFFERENT topic.
 
 ---
@@ -370,22 +310,10 @@ Only do new research if the user explicitly asks about a DIFFERENT topic.
 
 After delivering a prompt, end with:
 
-For **full/partial mode**:
 ```
 ---
-📚 Expert in: {TOPIC} for {TARGET_TOOL}
-📊 Based on: {n} Reddit threads ({sum} upvotes) + {n} X posts ({sum} likes) + {n} web pages
+Expert in: {TOPIC} for {TARGET_TOOL}
+Based on: {n} Reddit threads + {n} X posts + {n} web pages
 
 Want another prompt? Just tell me what you're creating next.
-```
-
-For **web-only mode**:
-```
----
-📚 Expert in: {TOPIC} for {TARGET_TOOL}
-📊 Based on: {n} web pages from {domains}
-
-Want another prompt? Just tell me what you're creating next.
-
-💡 Unlock Reddit & X data: Add API keys to ~/.config/last30days/.env
 ```
