@@ -198,16 +198,18 @@ def parse_bird_response(response: Dict[str, Any]) -> List[Dict[str, Any]]:
         # Extract URL - Bird uses permanent_url or we construct from id
         url = tweet.get("permanent_url") or tweet.get("url", "")
         if not url and tweet.get("id"):
-            screen_name = tweet.get("user", {}).get("screen_name", "")
+            # Try different field structures Bird might use
+            author = tweet.get("author", {}) or tweet.get("user", {})
+            screen_name = author.get("username") or author.get("screen_name", "")
             if screen_name:
                 url = f"https://x.com/{screen_name}/status/{tweet['id']}"
 
         if not url:
             continue
 
-        # Parse date from created_at (e.g., "Wed Jan 15 14:30:00 +0000 2026")
+        # Parse date from created_at/createdAt (e.g., "Wed Jan 15 14:30:00 +0000 2026")
         date = None
-        created_at = tweet.get("created_at", "")
+        created_at = tweet.get("createdAt") or tweet.get("created_at", "")
         if created_at:
             try:
                 # Try ISO format first
@@ -220,16 +222,16 @@ def parse_bird_response(response: Dict[str, Any]) -> List[Dict[str, Any]]:
             except (ValueError, TypeError):
                 pass
 
-        # Extract user info
-        user = tweet.get("user", {})
-        author_handle = user.get("screen_name", "") or tweet.get("author_handle", "")
+        # Extract user info (Bird uses author.username, older format uses user.screen_name)
+        author = tweet.get("author", {}) or tweet.get("user", {})
+        author_handle = author.get("username") or author.get("screen_name", "") or tweet.get("author_handle", "")
 
-        # Build engagement dict
+        # Build engagement dict (Bird uses camelCase: likeCount, retweetCount, etc.)
         engagement = {
-            "likes": tweet.get("like_count") or tweet.get("favorite_count"),
-            "reposts": tweet.get("retweet_count"),
-            "replies": tweet.get("reply_count"),
-            "quotes": tweet.get("quote_count"),
+            "likes": tweet.get("likeCount") or tweet.get("like_count") or tweet.get("favorite_count"),
+            "reposts": tweet.get("retweetCount") or tweet.get("retweet_count"),
+            "replies": tweet.get("replyCount") or tweet.get("reply_count"),
+            "quotes": tweet.get("quoteCount") or tweet.get("quote_count"),
         }
         # Convert to int where possible
         for key in engagement:

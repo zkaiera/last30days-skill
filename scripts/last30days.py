@@ -158,8 +158,8 @@ def _search_x(
 
         x_items = bird_x.parse_bird_response(raw_response or {})
 
-        # Check for error in response
-        if raw_response and raw_response.get("error") and not x_error:
+        # Check for error in response (Bird returns list on success, dict on error)
+        if raw_response and isinstance(raw_response, dict) and raw_response.get("error") and not x_error:
             x_error = raw_response["error"]
 
         return x_items, raw_response, x_error
