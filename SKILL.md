@@ -1,7 +1,7 @@
 ---
 name: last30days
 description: Research a topic from the last 30 days on Reddit + X + Web with Bird CLI support.
-argument-hint: "[topic] for [tool]" or "[topic]"
+argument-hint: '"[topic] for [tool]" or "[topic]"'
 context: fork
 agent: Explore
 disable-model-invocation: true
