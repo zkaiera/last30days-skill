@@ -163,6 +163,36 @@ This example shows /last30days as a **current events research tool** — no prom
 
 ---
 
+## Example: Vibe Motion (Brand New AI Tool)
+
+**Query:** `/last30days higgsfield motion vibe motion prompting`
+
+**Research Output:**
+> **Vibe Motion just launched (Feb 5-6, 2026) and it's blowing up** — Higgsfield dropped a Claude-powered motion design tool that generates editable motion graphics from plain-English prompts. It's the first AI video tool with actual reasoning, per @Hartdrawss, and @rezkhere called it out as something "no other AI can do." Linus Ekenstam said it "broke his brain" — work that took hours in After Effects now takes minutes.
+>
+> **It generates code, not pixels** — Unlike other AI video tools, Vibe Motion produces actual animation code (via Remotion under the hood), not hallucinated video. Text never breaks, edits stay consistent, and you get a controllable, editable asset, per @Totinhiiio.
+>
+> **Honest reviews: promising but not polished yet** — Chase Jarvis found results "okay" but noted 5+ minute render times, credit burn on iteration (8-60 credits per gen, $9 plan = ~150 credits), and that basic results are achievable faster with Canva. His verdict: "not quite ready for prime time" but the underlying tech shows significant potential.
+
+**Key patterns discovered:**
+1. Describe structure, not effects — Focus on timing, hierarchy, typography, and flow rather than expressive visual storytelling, per Higgsfield's official guide
+2. Upload your actual assets first — Brand logos, product images, PDFs give the AI context to build around YOUR files, not generic placeholders
+3. Use presets as starting points — Select a format (Infographics, Text Animation, Posters) before writing your prompt
+4. Keep prompts conversational and direct — Short commands > long descriptions. "Create a kinetic typography intro" beats a paragraph of specs, per Segmind
+5. Budget for iteration — Each generation burns credits, so get your prompt right before hitting generate, per Chase Jarvis
+
+**Research Stats:** 10 Reddit threads + 30 X posts from @rezkhere, @Hartdrawss, @Totinhiiio + 14 web pages (Higgsfield blog, Chase Jarvis, SiliconANGLE, Segmind)
+
+**Follow-up suggestions offered:**
+> I'm now an expert on Higgsfield Vibe Motion prompting. What do you want to make?
+> - A branded infographic animation with your company metrics animating in
+> - A kinetic typography intro/bumper for a YouTube series
+> - A logo reveal animation with particle effects and custom brand colors
+
+This example shows /last30days researching **a tool that launched 2 days ago**. No blog roundups existed yet — the research came from X creators and Reddit threads reacting in real-time. You get prompting advice from the people actually using it, not SEO articles written after the fact.
+
+---
+
 ## Example: Legal Prompting (Hallucination Prevention)
 
 **Query:** `/last30days prompting techniques for chatgpt for legal questions`
