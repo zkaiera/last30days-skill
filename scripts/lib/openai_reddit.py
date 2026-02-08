@@ -40,7 +40,26 @@ def _is_model_access_error(error: http.HTTPError) -> bool:
     ])
 
 
-OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
+def _is_openrouter_base_url(base_url: Optional[str]) -> bool:
+    """Check whether the current API base URL is OpenRouter."""
+    if not base_url:
+        return False
+    return "openrouter.ai" in base_url.lower()
+
+
+def _is_invalid_include_error(error: http.HTTPError) -> bool:
+    """Check if HTTP error is caused by unsupported `include` parameter."""
+    if error.status_code != 400 or not error.body:
+        return False
+    body_lower = error.body.lower()
+    return "include" in body_lower and (
+        "invalid option" in body_lower
+        or "invalid_value" in body_lower
+        or "zoderror" in body_lower
+    )
+
+
+DEFAULT_OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 
 # Depth configurations: (min, max) threads to request
 # Request MORE than needed since many get filtered by date
@@ -122,6 +141,8 @@ def search_reddit(
     from_date: str,
     to_date: str,
     depth: str = "default",
+    base_url: Optional[str] = None,
+    fallback_models: Optional[List[str]] = None,
     mock_response: Optional[Dict] = None,
     _retry: bool = False,
 ) -> Dict[str, Any]:
@@ -149,11 +170,17 @@ def search_reddit(
         "Content-Type": "application/json",
     }
 
+    responses_url = DEFAULT_OPENAI_RESPONSES_URL
+    if base_url:
+        responses_url = f"{base_url.rstrip('/')}/responses"
+
     # Adjust timeout based on depth (generous for OpenAI web_search which can be slow)
     timeout = 90 if depth == "quick" else 120 if depth == "default" else 180
 
     # Build list of models to try: requested model first, then fallbacks
-    models_to_try = [model] + [m for m in MODEL_FALLBACK_ORDER if m != model]
+    fallback_order = fallback_models or MODEL_FALLBACK_ORDER
+    models_to_try = [model] + [m for m in fallback_order if m != model]
+    include_sources = not _is_openrouter_base_url(base_url)
 
     # Note: allowed_domains accepts base domain, not subdomains
     # We rely on prompt to filter out developers.reddit.com, etc.
@@ -177,13 +204,25 @@ def search_reddit(
                     }
                 }
             ],
-            "include": ["web_search_call.action.sources"],
             "input": input_text,
         }
 
+        if include_sources:
+            payload["include"] = ["web_search_call.action.sources"]
+
         try:
-            return http.post(OPENAI_RESPONSES_URL, payload, headers=headers, timeout=timeout)
+            return http.post(responses_url, payload, headers=headers, timeout=timeout)
         except http.HTTPError as e:
+            # OpenRouter and some gateways reject this include option.
+            # Retry once without include before moving to model fallback.
+            if include_sources and _is_invalid_include_error(e):
+                retry_payload = dict(payload)
+                retry_payload.pop("include", None)
+                try:
+                    return http.post(responses_url, retry_payload, headers=headers, timeout=timeout)
+                except http.HTTPError as retry_error:
+                    e = retry_error
+
             last_error = e
             if _is_model_access_error(e):
                 _log_info(f"Model {current_model} not accessible, trying fallback...")

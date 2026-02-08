@@ -7,6 +7,13 @@ import threading
 import random
 from typing import Optional
 
+from . import env
+
+
+def _config_path() -> str:
+    """Return active config file path for user-facing messages."""
+    return env.get_env_file_display_path()
+
 # Check if we're in a real terminal (not captured by Claude Code)
 IS_TTY = sys.stderr.isatty()
 
@@ -93,7 +100,7 @@ PROMO_MESSAGE = f"""
      └─ {Colors.GREEN}FREE:{Colors.RESET} npm install -g @steipete/bird {Colors.DIM}(uses browser session){Colors.RESET}
      └─ {Colors.DIM}Or:{Colors.RESET} Add XAI_API_KEY (paid API)
 
-{Colors.DIM}Setup:{Colors.RESET} Edit {Colors.BOLD}~/.config/last30days/.env{Colors.RESET}
+{Colors.DIM}Setup:{Colors.RESET} Edit {Colors.BOLD}{_config_path()}{Colors.RESET}
 {Colors.YELLOW}{Colors.BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{Colors.RESET}
 """
 
@@ -110,25 +117,25 @@ Right now you're using web search only. Unlock more sources:
      └─ FREE: npm install -g @steipete/bird (uses browser session)
      └─ Or: Add XAI_API_KEY (paid API)
 
-Setup: Edit ~/.config/last30days/.env
+Setup: Edit {_config_path()}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 # Shorter promo for single missing key
 PROMO_SINGLE_KEY = {
     "reddit": f"""
-{Colors.DIM}💡 Tip: Add {Colors.YELLOW}OPENAI_API_KEY{Colors.RESET}{Colors.DIM} to ~/.config/last30days/.env for Reddit data with real engagement metrics!{Colors.RESET}
+{Colors.DIM}💡 Tip: Add {Colors.YELLOW}OPENAI_API_KEY{Colors.RESET}{Colors.DIM} to {_config_path()} for Reddit data with real engagement metrics!{Colors.RESET}
 """,
     "x": f"""
 {Colors.DIM}💡 Tip: For X/Twitter data with real likes & reposts:{Colors.RESET}
    {Colors.GREEN}FREE:{Colors.RESET} npm install -g @steipete/bird {Colors.DIM}(uses browser session){Colors.RESET}
-   {Colors.DIM}Or: Add XAI_API_KEY to ~/.config/last30days/.env{Colors.RESET}
+   {Colors.DIM}Or: Add XAI_API_KEY to {_config_path()}{Colors.RESET}
 """,
 }
 
 PROMO_SINGLE_KEY_PLAIN = {
-    "reddit": "\n💡 Tip: Add OPENAI_API_KEY to ~/.config/last30days/.env for Reddit data with real engagement metrics!\n",
-    "x": "\n💡 Tip: For X/Twitter data with real likes & reposts:\n   FREE: npm install -g @steipete/bird (uses browser session)\n   Or: Add XAI_API_KEY to ~/.config/last30days/.env\n",
+    "reddit": f"\n💡 Tip: Add OPENAI_API_KEY to {_config_path()} for Reddit data with real engagement metrics!\n",
+    "x": f"\n💡 Tip: For X/Twitter data with real likes & reposts:\n   FREE: npm install -g @steipete/bird (uses browser session)\n   Or: Add XAI_API_KEY to {_config_path()}\n",
 }
 
 # Bird CLI prompts

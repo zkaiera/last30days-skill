@@ -4,20 +4,45 @@ import os
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-# Allow override via environment variable for testing
-# Set LAST30DAYS_CONFIG_DIR="" for clean/no-config mode
-# Set LAST30DAYS_CONFIG_DIR="/path/to/dir" for custom config location
-_config_override = os.environ.get('LAST30DAYS_CONFIG_DIR')
-if _config_override == "":
-    # Empty string = no config file (clean mode)
-    CONFIG_DIR = None
-    CONFIG_FILE = None
-elif _config_override:
-    CONFIG_DIR = Path(_config_override)
-    CONFIG_FILE = CONFIG_DIR / ".env"
-else:
-    CONFIG_DIR = Path.home() / ".config" / "last30days"
-    CONFIG_FILE = CONFIG_DIR / ".env"
+# 默认读取当前技能目录下的 .env
+# 可通过 LAST30DAYS_CONFIG_DIR 覆盖（用于测试/特殊部署）
+# - LAST30DAYS_CONFIG_DIR=""  => 禁用文件配置（只读系统环境变量）
+# - LAST30DAYS_CONFIG_DIR="/path/to/dir" => 读取 /path/to/dir/.env
+# - LAST30DAYS_CONFIG_DIR="/path/to/.env" => 直接读取该文件
+SKILL_DIR = Path(__file__).resolve().parents[2]
+
+
+def _resolve_config_paths() -> tuple[Optional[Path], Optional[Path]]:
+    """Resolve config directory/file based on override and defaults."""
+    override = os.environ.get('LAST30DAYS_CONFIG_DIR')
+    if override == "":
+        return None, None
+
+    if override:
+        path = Path(override).expanduser()
+        if path.name == ".env":
+            return path.parent, path
+        return path, path / ".env"
+
+    return SKILL_DIR, SKILL_DIR / ".env"
+
+
+CONFIG_DIR, CONFIG_FILE = _resolve_config_paths()
+
+
+def _pick_value(file_env: Dict[str, str], *keys: str, default: Optional[str] = None) -> Optional[str]:
+    """Pick the first non-empty value from env vars, then .env file."""
+    for key in keys:
+        value = os.environ.get(key)
+        if value not in (None, ""):
+            return value
+
+    for key in keys:
+        value = file_env.get(key)
+        if value not in (None, ""):
+            return value
+
+    return default
 
 
 def load_env_file(path: Path) -> Dict[str, str]:
@@ -43,19 +68,46 @@ def load_env_file(path: Path) -> Dict[str, str]:
     return env
 
 
+def get_env_file_path() -> Optional[Path]:
+    """Get the active .env file path, or None when file config is disabled."""
+    return CONFIG_FILE
+
+
+def get_env_file_display_path() -> str:
+    """Get user-friendly config path for logs/prompts."""
+    return str(CONFIG_FILE) if CONFIG_FILE else "(file config disabled)"
+
+
 def get_config() -> Dict[str, Any]:
-    """Load configuration from ~/.config/last30days/.env and environment."""
+    """Load configuration from skill-local .env and process environment."""
     # Load from config file first (if configured)
     file_env = load_env_file(CONFIG_FILE) if CONFIG_FILE else {}
 
     # Environment variables override file
     config = {
-        'OPENAI_API_KEY': os.environ.get('OPENAI_API_KEY') or file_env.get('OPENAI_API_KEY'),
-        'XAI_API_KEY': os.environ.get('XAI_API_KEY') or file_env.get('XAI_API_KEY'),
-        'OPENAI_MODEL_POLICY': os.environ.get('OPENAI_MODEL_POLICY') or file_env.get('OPENAI_MODEL_POLICY', 'auto'),
-        'OPENAI_MODEL_PIN': os.environ.get('OPENAI_MODEL_PIN') or file_env.get('OPENAI_MODEL_PIN'),
-        'XAI_MODEL_POLICY': os.environ.get('XAI_MODEL_POLICY') or file_env.get('XAI_MODEL_POLICY', 'latest'),
-        'XAI_MODEL_PIN': os.environ.get('XAI_MODEL_PIN') or file_env.get('XAI_MODEL_PIN'),
+        'OPENAI_API_KEY': _pick_value(file_env, 'OPENAI_API_KEY'),
+        'XAI_API_KEY': _pick_value(file_env, 'XAI_API_KEY'),
+        'OPENAI_MODEL_POLICY': _pick_value(file_env, 'OPENAI_MODEL_POLICY', default='auto'),
+        'OPENAI_MODEL_PIN': _pick_value(file_env, 'OPENAI_MODEL_PIN'),
+        'XAI_MODEL_POLICY': _pick_value(file_env, 'XAI_MODEL_POLICY', default='latest'),
+        'XAI_MODEL_PIN': _pick_value(file_env, 'XAI_MODEL_PIN'),
+        # 第三方中转/网关（OpenAI/xAI 兼容）
+        'OPENAI_BASE_URL': _pick_value(
+            file_env,
+            'OPENAI_BASE_URL',
+            'OPENAI_API_BASE',
+            default='https://api.openai.com/v1',
+        ),
+        'XAI_BASE_URL': _pick_value(
+            file_env,
+            'XAI_BASE_URL',
+            'XAI_API_BASE',
+            default='https://api.x.ai/v1',
+        ),
+        # 模型名称映射：支持 JSON 或 key=value,key2=value2
+        'OPENAI_MODEL_MAP': _pick_value(file_env, 'OPENAI_MODEL_MAP'),
+        'XAI_MODEL_MAP': _pick_value(file_env, 'XAI_MODEL_MAP'),
+        'OPENAI_FALLBACK_MODELS': _pick_value(file_env, 'OPENAI_FALLBACK_MODELS'),
     }
 
     return config
@@ -63,7 +115,7 @@ def get_config() -> Dict[str, Any]:
 
 def config_exists() -> bool:
     """Check if configuration file exists."""
-    return CONFIG_FILE.exists()
+    return bool(CONFIG_FILE and CONFIG_FILE.exists())
 
 
 def get_available_sources(config: Dict[str, Any]) -> str:
@@ -126,7 +178,8 @@ def validate_sources(requested: str, available: str, include_web: bool = False) 
         elif requested == 'web':
             return 'web', None
         else:
-            return 'web', f"No API keys configured. Using WebSearch fallback. Add keys to ~/.config/last30days/.env for Reddit/X."
+            config_path = get_env_file_display_path()
+            return 'web', f"No API keys configured. Using WebSearch fallback. Add keys to {config_path} for Reddit/X."
 
     if requested == 'auto':
         # Add web to sources if include_web is set

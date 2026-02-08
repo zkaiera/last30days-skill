@@ -14,7 +14,7 @@ def _log_error(msg: str):
     sys.stderr.flush()
 
 # xAI uses responses endpoint with Agent Tools API
-XAI_RESPONSES_URL = "https://api.x.ai/v1/responses"
+DEFAULT_XAI_RESPONSES_URL = "https://api.x.ai/v1/responses"
 
 # Depth configurations: (min, max) posts to request
 DEPTH_CONFIG = {
@@ -55,6 +55,13 @@ Rules:
 - Prefer posts with substantive content, not just links"""
 
 
+def _is_openrouter_base_url(base_url: Optional[str]) -> bool:
+    """Check whether the current API base URL is OpenRouter."""
+    if not base_url:
+        return False
+    return "openrouter.ai" in base_url.lower()
+
+
 def search_x(
     api_key: str,
     model: str,
@@ -62,6 +69,7 @@ def search_x(
     from_date: str,
     to_date: str,
     depth: str = "default",
+    base_url: Optional[str] = None,
     mock_response: Optional[Dict] = None,
 ) -> Dict[str, Any]:
     """Search X for relevant posts using xAI API with live search.
@@ -88,30 +96,50 @@ def search_x(
         "Content-Type": "application/json",
     }
 
+    responses_url = DEFAULT_XAI_RESPONSES_URL
+    if base_url:
+        responses_url = f"{base_url.rstrip('/')}/responses"
+
     # Adjust timeout based on depth (generous for API response time)
     timeout = 90 if depth == "quick" else 120 if depth == "default" else 180
 
-    # Use Agent Tools API with x_search tool
-    payload = {
-        "model": model,
-        "tools": [
-            {"type": "x_search"}
-        ],
-        "input": [
-            {
-                "role": "user",
-                "content": X_SEARCH_PROMPT.format(
-                    topic=topic,
-                    from_date=from_date,
-                    to_date=to_date,
-                    min_items=min_items,
-                    max_items=max_items,
-                ),
-            }
-        ],
-    }
+    prompt = X_SEARCH_PROMPT.format(
+        topic=topic,
+        from_date=from_date,
+        to_date=to_date,
+        min_items=min_items,
+        max_items=max_items,
+    )
 
-    return http.post(XAI_RESPONSES_URL, payload, headers=headers, timeout=timeout)
+    # OpenRouter doesn't support x_search tool type directly.
+    # Use OpenRouter web plugin, which enables X+web search for xAI models.
+    if _is_openrouter_base_url(base_url):
+        payload = {
+            "model": model,
+            "plugins": [{"id": "web"}],
+            "input": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+        }
+    else:
+        # Native xAI Agent Tools API with x_search tool
+        payload = {
+            "model": model,
+            "tools": [
+                {"type": "x_search"}
+            ],
+            "input": [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+        }
+
+    return http.post(responses_url, payload, headers=headers, timeout=timeout)
 
 
 def parse_x_response(response: Dict[str, Any]) -> List[Dict[str, Any]]:

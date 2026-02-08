@@ -83,6 +83,8 @@ def _search_reddit(
                 from_date,
                 to_date,
                 depth=depth,
+                base_url=config.get("OPENAI_BASE_URL"),
+                fallback_models=models.get_openai_fallback_chain(config),
             )
         except http.HTTPError as e:
             raw_openai = {"error": str(e)}
@@ -105,6 +107,8 @@ def _search_reddit(
                     core,
                     from_date, to_date,
                     depth=depth,
+                    base_url=config.get("OPENAI_BASE_URL"),
+                    fallback_models=models.get_openai_fallback_chain(config),
                 )
                 retry_items = openai_reddit.parse_reddit_response(retry_raw)
                 # Add items not already found (by URL)
@@ -125,6 +129,8 @@ def _search_reddit(
                 sub_query,
                 from_date, to_date,
                 depth=depth,
+                base_url=config.get("OPENAI_BASE_URL"),
+                fallback_models=models.get_openai_fallback_chain(config),
             )
             sub_items = openai_reddit.parse_reddit_response(sub_raw)
             existing_urls = {item.get("url") for item in reddit_items}
@@ -193,6 +199,7 @@ def _search_x(
             from_date,
             to_date,
             depth=depth,
+            base_url=config.get("XAI_BASE_URL"),
         )
     except http.HTTPError as e:
         raw_response = {"error": str(e)}
@@ -725,7 +732,7 @@ def output_result(
         print(f"Topic: {topic}")
         print(f"Date range: {from_date} to {to_date}")
         print("")
-        print("Claude: Use your WebSearch tool to find 8-15 relevant web pages.")
+        print("Use your WebSearch tool to find 8-15 relevant web pages.")
         print("EXCLUDE: reddit.com, x.com, twitter.com (already covered above)")
         print(f"INCLUDE: blogs, docs, news, tutorials from the last {days} days")
         print("")

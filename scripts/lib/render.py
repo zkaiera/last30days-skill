@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import List, Optional
 
-from . import schema
+from . import env, schema
 
 OUTPUT_DIR = Path.home() / ".local" / "share" / "last30days" / "out"
 
@@ -67,7 +67,7 @@ def render_compact(report: schema.Report, limit: int = 15, missing_keys: str = "
         lines.append("**⚡ Want better results?** Add API keys to unlock Reddit & X data:")
         lines.append("- `OPENAI_API_KEY` → Reddit threads with real upvotes & comments")
         lines.append("- `XAI_API_KEY` → X posts with real likes & reposts")
-        lines.append("- Edit `~/.config/last30days/.env` to add keys")
+        lines.append(f"- Edit `{env.get_env_file_display_path()}` to add keys")
         lines.append("---")
         lines.append("")
 

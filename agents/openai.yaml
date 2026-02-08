@@ -1,0 +1,4 @@
+interface:
+  display_name: "Last30Days"
+  short_description: "研究近30天 Reddit/X/Web 讨论并产出可用提示"
+  default_prompt: "使用 $last30days 研究“你的主题”最近30天在 Reddit、X 和 Web 的讨论，并给我可直接粘贴使用的提示词。"
